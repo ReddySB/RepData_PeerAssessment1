@@ -1,25 +1,97 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Assignment"
+author: "Syamala"
+date: "January 27, 2017"
+output: md_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
+## Reading Acitivty Data [file should be in current working directory]
+```{r}
+        ActivityData <- read.csv("activity.csv", header = TRUE)
+```
 
 
+## Total number of steps taken per day
+```{r }
+        DailySteps <- aggregate(ActivityData[,1], list(sum = ActivityData$date), sum, na.rm = TRUE)
+```
 
-## Imputing missing values
+## Histogram of daily total steps
+```{r }
+
+        hist(DailySteps$x ,main = "Histogram of daily total steps" , xlab = "Total steps")
+```
+
+## Mean of the total number of steps taken per day
+```{r }
+        tapply(ActivityData$steps, ActivityData$date, mean ,na.rm = TRUE)
+```
+
+## Median of the total number of steps taken per day   
+```{r}
+        tapply(ActivityData$steps, ActivityData$date, median, na.rm = TRUE)
+```
+
+##Average daily activity pattern  
+```{r}
+        FiveMinAvg <- aggregate(ActivityData[,1], list(Interval = ActivityData$interval), mean, na.rm = TRUE)
+      
+        plot(x ~ Interval, FiveMinAvg , type = "l" , ylab = "Average Steps taken" )
+         
+```        
+
+#Interval that contains the maximum number of steps  
+```{r}
+        FiveMinAvg[which.max(FiveMinAvg$x), ]
+
+```
 
 
+##Total number of missing values
+```{r}
+        sum(is.na(ActivityData$steps))
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+##Imputing missing values
+```{r}
+        require(plyr)
+        require(Hmisc)
+        imputeValue <- FiveMinAvg[which(FiveMinAvg$Interval == 5), ]
+        ActivityData$new <- with(ActivityData, impute(steps, imputeValue$x))
+        NewActivityData <- data.frame(ActivityData$new, ActivityData$date, ActivityData$interval)
+        colnames(NewActivityData) <- c("steps", "date", "interval")       
+```
+## Total number of steps taken per day after imputing missing values  
+```{r }
+        NewDailySteps <- aggregate(NewActivityData[,1], list(sum = NewActivityData$date), sum, na.rm = TRUE)
+```   
+## Histogram of daily total steps after imputing missing values
+```{r }
+        hist(NewDailySteps$x, main = "Histogram of daily total steps" , xlab = "Total steps")
+```  
+
+## Mean after imputing missing values
+```{r }
+        tapply(NewActivityData$steps, NewActivityData$date, mean ,na.rm = TRUE)
+```
+
+## Median after imputing missing values   
+```{r}
+        tapply(NewActivityData$steps, NewActivityData$date, median, na.rm = TRUE)
+```
+##Activity patterns between weekdays and weekends
+```{r}
+        NewActivityData$date <- as.Date(NewActivityData$date)
+       #create a vector of weekdays
+       weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+  
+       NewActivityData$wDay <- factor((weekdays(NewActivityData$date) %in% weekdays1),levels=c(FALSE, TRUE), labels=c('weekend', 'weekday'))
+
+     WeekDataset <- aggregate(NewActivityData[,1] , list(ActivityData$interval, NewActivityData$wDay), mean )
+     colnames(WeekDataset) <- c("interval", "date", "avg") 
+     xyplot(avg~interval|factor(date), data=WeekDataset,  type='l',layout=c(1,2), xlab='Interval',ylab='Number of Steps')
+```
